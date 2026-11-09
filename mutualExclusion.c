@@ -83,7 +83,7 @@ unsigned long processCommandLine(int argc, char** argv) {
    }
 }
 
-double saldo(int conta){
+void saldo(int conta){
    double resultado;
    pthread_mutex_lock(&lock);
    resultado = bankAccountBalance[conta];
@@ -164,9 +164,10 @@ int main(int argc, char** argv) {
   for (id = 1; id < numThreads; id++) {   // JOIN:
      pthread_join( children[id-1], NULL );
   }
-
-  printf("\nThe final balance of the account using %lu threads is $%.2f.\n\n",
-          numThreads, bankAccountBalance);
+  for(int i =1;i<=NUM_CONTAS;i++){
+   printf("\nThe final balance of the %d account using %lu threads is $%.2f.\n\n",
+             i,numThreads, bankAccountBalance[i]);
+  }
   
   free(children);                         // deallocate array
   cleanup();                              // deallocate mutex

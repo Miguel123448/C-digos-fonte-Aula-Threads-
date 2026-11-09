@@ -12,6 +12,6 @@ double bankAccountBalance[5];
 void deposit(double amount, int numero);
 // subtract amount from bankAccountBalance
 void withdraw(double amount,int numero);
-double transferencia(int origem, int destino, double valor);
-double saldo(int conta);
+void transferencia(int origem, int destino, double valor);
+void saldo(int conta);
 void cleanup();
