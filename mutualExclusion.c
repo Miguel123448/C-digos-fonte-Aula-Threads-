@@ -100,14 +100,12 @@ void transferencia(int origem, int destino, double valor){
          printf("Insira um valor válido.\n");
          return;
       }
+      pthread_mutex_lock(&lock);
       if(bankAccountBalance[origem]<valor){
          printf("A conta de origem não possui saldo.\n");
+         pthread_mutex_unlock(&lock);
          return;
-      } 
-      
-
-    if (bankAccountBalance[origem] >= valor) {
-         pthread_mutex_lock(&lock);
+      }else{
          bankAccountBalance[origem] -= valor;
          bankAccountBalance[destino] += valor;
          pthread_mutex_unlock(&lock);
