@@ -33,12 +33,35 @@ void do1000Transactions(unsigned long id) {
 
     for (unsigned i = 0; i < 1000; i++) {
 
-        int numero = rand_r(&seed) % NUM_CONTAS;
+        // Sorteia a operação (0 a 3)
+         int operacao = rand_r(&seed) % 4;
 
-        if (odd(id)) {
-            deposit(100.00, numero);
-        } else {
-            withdraw(100.00, numero);
+        // Sorteia a conta (0 a NUM_CONTAS - 1)
+         int numero = rand_r(&seed) % NUM_CONTAS;
+
+        switch (operacao) {
+
+            case 0:
+               deposit(100.00, numero);
+               break;
+
+            case 1:
+               withdraw(100.00, numero);
+               break;
+
+            case 2:
+               saldo(numero);
+               break;
+
+            case 3: {
+                  int destino;
+                  do {
+                     destino = rand_r(&seed) % NUM_CONTAS;
+                  } while (destino == numero);
+
+                  transferencia(numero, destino, 100.00);
+                  break;
+               }
         }
     }
 }
@@ -58,6 +81,66 @@ unsigned long processCommandLine(int argc, char** argv) {
       fprintf(stderr, "\nUsage: ./mutualExclusion [evenNumberOfThreads]\n");
       exit(1);
    }
+}
+
+double saldo(int conta){
+   double resultado;
+   pthread_mutex_lock(&lock);
+   resultado = bankAccountBalance[conta];
+   pthread_mutex_unlock(&lock);
+   printf("O saldo da conta é: %f", resultado);
+}
+
+void transferencia(int origem, int destino, double valor){
+      if(origem==destino){
+         printf("Não dá pra transferir para o mesmo destino.");
+         return;
+      } 
+      if (valor<=0){
+         printf("Insira um valor válido.");
+         return;
+      }
+      if(bankAccountBalance[origem]<valor){
+         printf("A conta de origem não possui saldo.");
+         return;
+      } 
+      
+
+    if (bankAccountBalance[origem] >= valor) {
+         pthread_mutex_lock(&lock);
+         bankAccountBalance[origem] -= valor;
+         bankAccountBalance[destino] += valor;
+         pthread_mutex_unlock(&lock);
+         printf("Transferencia realizada!\n");
+    }
+}
+
+void deposit(double amount, int numero) {
+  if(amount <=0){
+    return;
+  }
+  pthread_mutex_lock( &lock );
+  bankAccountBalance[numero] += amount;
+  pthread_mutex_unlock( &lock );
+}
+
+// subtract amount from bankAccountBalance
+void withdraw(double amount,int numero) {
+
+    pthread_mutex_lock(&lock);
+
+    if (amount > 0 && bankAccountBalance[numero] >= amount) {
+        bankAccountBalance[numero] -= amount;
+        pthread_mutex_unlock(&lock);
+        printf("Saque realizado!\n");
+    } else {
+        pthread_mutex_unlock(&lock);
+        printf("Saldo insuficiente ou valor invalido!\n");
+    }
+}
+
+void cleanup() {
+   pthread_mutex_destroy(&lock);
 }
 
 int main(int argc, char** argv) {
