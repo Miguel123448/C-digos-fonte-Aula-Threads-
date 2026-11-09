@@ -164,9 +164,9 @@ int main(int argc, char** argv) {
   for (id = 1; id < numThreads; id++) {   // JOIN:
      pthread_join( children[id-1], NULL );
   }
-  for(int i =1;i<=NUM_CONTAS;i++){
+  for(int i =0;i<NUM_CONTAS;i++){
    printf("\nThe final balance of the %d account using %lu threads is $%.2f.\n\n",
-             i,numThreads, bankAccountBalance[i]);
+             i+1,numThreads, bankAccountBalance[i]);
   }
   
   free(children);                         // deallocate array
