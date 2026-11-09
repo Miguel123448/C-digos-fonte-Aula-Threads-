@@ -88,20 +88,20 @@ void saldo(int conta){
    pthread_mutex_lock(&lock);
    resultado = bankAccountBalance[conta];
    pthread_mutex_unlock(&lock);
-   printf("O saldo da conta é: %f", resultado);
+   printf("O saldo da conta é: %f\n", resultado);
 }
 
 void transferencia(int origem, int destino, double valor){
       if(origem==destino){
-         printf("Não dá pra transferir para o mesmo destino.");
+         printf("Não dá pra transferir para o mesmo destino.\n");
          return;
       } 
       if (valor<=0){
-         printf("Insira um valor válido.");
+         printf("Insira um valor válido.\n");
          return;
       }
       if(bankAccountBalance[origem]<valor){
-         printf("A conta de origem não possui saldo.");
+         printf("A conta de origem não possui saldo.\n");
          return;
       } 
       
