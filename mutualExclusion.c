@@ -22,48 +22,36 @@
 #include <time.h>
 
 #include "bankAccount.h"  // bank account info
-#define NUM_CONTAS 5
+
 // utility function to identify even-odd numbers
 unsigned odd(unsigned long num) { return num % 2; }
 
 // simulate id performing 1000 transactions 
 void do1000Transactions(unsigned long id) {
-
-    unsigned int seed = (unsigned int)time(NULL) ^ (unsigned int)(id + 1);
-
-    for (unsigned i = 0; i < 1000; i++) {
-
-        // Sorteia a operação (0 a 3)
-         int operacao = rand_r(&seed) % 4;
-
-        // Sorteia a conta (0 a NUM_CONTAS - 1)
-         int numero = rand_r(&seed) % NUM_CONTAS;
-
-        switch (operacao) {
-
-            case 0:
-               deposit(100.00, numero);
-               break;
-
-            case 1:
-               withdraw(100.00, numero);
-               break;
-
-            case 2:
-               saldo(numero);
-               break;
-
-            case 3: {
-                  int destino;
-                  do {
-                     destino = rand_r(&seed) % NUM_CONTAS;
-                  } while (destino == numero);
-
-                  transferencia(numero, destino, 100.00);
-                  break;
-               }
-        }
-    }
+   unsigned int seed = (unsigned int) time(NULL) ^ (unsigned int) id;
+   for (unsigned i = 0; i < 1000; i++) {
+      int    op      = rand_r(&seed) % 4;
+      int    account = rand_r(&seed) % NUM_ACCOUNTS;
+      double amount  = (rand_r(&seed) % 500) + 1.0;
+      switch (op) {
+         case 0:
+            deposit(account, amount);
+            break;
+         case 1:
+            withdraw(account, amount);
+            break;
+         case 2:
+            getBalance(account);
+            break;
+         default: {
+            int to = rand_r(&seed) % NUM_ACCOUNTS;
+            while (to == account) {
+               to = rand_r(&seed) % NUM_ACCOUNTS;
+            }
+            transfer(account, to, amount);
+         }
+      }
+   }
 }
 
 void* child(void * buf) { 
@@ -83,64 +71,6 @@ unsigned long processCommandLine(int argc, char** argv) {
    }
 }
 
-void saldo(int conta){
-   double resultado;
-   pthread_mutex_lock(&lock);
-   resultado = bankAccountBalance[conta];
-   pthread_mutex_unlock(&lock);
-   printf("O saldo da conta é: %f\n", resultado);
-}
-
-void transferencia(int origem, int destino, double valor){
-      if(origem==destino){
-         printf("Não dá pra transferir para o mesmo destino.\n");
-         return;
-      } 
-      if (valor<=0){
-         printf("Insira um valor válido.\n");
-         return;
-      }
-      pthread_mutex_lock(&lock);
-      if(bankAccountBalance[origem]<valor){
-         printf("A conta de origem não possui saldo.\n");
-         pthread_mutex_unlock(&lock);
-         return;
-      }else{
-         bankAccountBalance[origem] -= valor;
-         bankAccountBalance[destino] += valor;
-         pthread_mutex_unlock(&lock);
-         printf("Transferencia realizada!\n");
-    }
-}
-
-void deposit(double amount, int numero) {
-  if(amount <=0){
-    return;
-  }
-  pthread_mutex_lock( &lock );
-  bankAccountBalance[numero] += amount;
-  pthread_mutex_unlock( &lock );
-}
-
-// subtract amount from bankAccountBalance
-void withdraw(double amount,int numero) {
-
-    pthread_mutex_lock(&lock);
-
-    if (amount > 0 && bankAccountBalance[numero] >= amount) {
-        bankAccountBalance[numero] -= amount;
-        pthread_mutex_unlock(&lock);
-        printf("Saque realizado!\n");
-    } else {
-        pthread_mutex_unlock(&lock);
-        printf("Saldo insuficiente ou valor invalido!\n");
-    }
-}
-
-void cleanup() {
-   pthread_mutex_destroy(&lock);
-}
-
 int main(int argc, char** argv) {
   pthread_t * children;                   // dynamic array of child threads
   unsigned long id = 0;                   // loop control variable
@@ -149,6 +79,7 @@ int main(int argc, char** argv) {
   numThreads = processCommandLine(argc, argv);
                                           // allocate array of handles
   children = malloc( numThreads * sizeof(pthread_t) );
+  initAccounts();
                                           // FORK:
   for (id = 1; id < numThreads; id++) {
      pthread_create( &(children[id-1]),   // our handle for the child 
@@ -162,10 +93,25 @@ int main(int argc, char** argv) {
   for (id = 1; id < numThreads; id++) {   // JOIN:
      pthread_join( children[id-1], NULL );
   }
-  for(int i =0;i<NUM_CONTAS;i++){
-   printf("\nThe final balance of the %d account using %lu threads is $%.2f.\n\n",
-             i+1,numThreads, bankAccountBalance[i]);
+
+  double totalBalance = 0, totalDep = 0, totalWit = 0;
+  printf("\n=== SALDOS FINAIS (%lu threads) ===\n", numThreads);
+  for (int i = 0; i < NUM_ACCOUNTS; i++) {
+     printf("Conta %d: R$ %.2f\n", i, bankAccountBalance[i]);
+     totalBalance += bankAccountBalance[i];
+     totalDep     += totalDeposited[i];
+     totalWit     += totalWithdrawn[i];
   }
+
+  double expected = NUM_ACCOUNTS * INITIAL_BALANCE + totalDep - totalWit;
+  double diff = totalBalance - expected;
+  if (diff < 0) diff = -diff;
+
+  printf("\nSoma dos saldos finais: R$ %.2f\n", totalBalance);
+  printf("Esperado (inicial + depositos - saques): %.2f + %.2f - %.2f = R$ %.2f\n",
+         NUM_ACCOUNTS * INITIAL_BALANCE, totalDep, totalWit, expected);
+  printf("Conferencia: %s\n\n", diff < 0.005 ? "OK - nenhum valor foi perdido"
+                                             : "FALHOU - houve condicao de corrida");
   
   free(children);                         // deallocate array
   cleanup();                              // deallocate mutex
