@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define NUM_ACCOUNTS     5
-#define INITIAL_BALANCE  1000.00
+#define NUM_ACCOUNTS     10
+#define INITIAL_BALANCE  500.00
 
 // Shared Variables
 pthread_mutex_t lock[NUM_ACCOUNTS];
@@ -25,7 +25,7 @@ void initAccounts(void) {
       bankAccountBalance[i] = INITIAL_BALANCE;
       totalDeposited[i] = 0;
       totalWithdrawn[i] = 0;
-      sprintf(fileName, "extrato_conta_%d.log", i);
+      sprintf(fileName, "extratoConta_%d.log", i);
       logFile[i] = fopen(fileName, "w");
       if (logFile[i] == NULL) {
          perror("Erro ao abrir o arquivo de extrato");

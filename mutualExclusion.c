@@ -54,8 +54,8 @@ void do1000Transactions(unsigned long id) {
    }
 }
 
-void* child(void * buf) { 
-   unsigned long childID = (unsigned long) buf;
+void* child(void * c) { 
+   unsigned long childID = (unsigned long) c;
    do1000Transactions(childID);  
    return NULL;
 }
@@ -73,7 +73,7 @@ unsigned long processCommandLine(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   pthread_t * children;                   // dynamic array of child threads
-  unsigned long id = 0;                   // loop control variable
+  unsigned long t = 0;                   // loop control variable
   unsigned long numThreads = 0;           // desired # of threads
                                           // get desired # of threads
   numThreads = processCommandLine(argc, argv);
@@ -81,21 +81,21 @@ int main(int argc, char** argv) {
   children = malloc( numThreads * sizeof(pthread_t) );
   initAccounts();
                                           // FORK:
-  for (id = 1; id < numThreads; id++) {
-     pthread_create( &(children[id-1]),   // our handle for the child 
+  for (t = 1; t < numThreads; t++) {
+     pthread_create( &(children[t-1]),   // our handle for the child 
                       NULL,               // attributes of the child
                       child,              // the function it should run
-                      (void*) id );       // args to that function
+                      (void*) t );       // args to that function
   }
   
   do1000Transactions(0);
 
-  for (id = 1; id < numThreads; id++) {   // JOIN:
-     pthread_join( children[id-1], NULL );
+  for (t = 1; t < numThreads; t++) {   // JOIN:
+     pthread_join( children[t-1], NULL );
   }
 
   double totalBalance = 0, totalDep = 0, totalWit = 0;
-  printf("\n=== SALDOS FINAIS (%lu threads) ===\n", numThreads);
+  printf("\n====== SALDOS FINAIS (%lu threads) ======\n", numThreads);
   for (int i = 0; i < NUM_ACCOUNTS; i++) {
      printf("Conta %d: R$ %.2f\n", i, bankAccountBalance[i]);
      totalBalance += bankAccountBalance[i];
@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
   printf("\nSoma dos saldos finais: R$ %.2f\n", totalBalance);
   printf("Esperado (inicial + depositos - saques): %.2f + %.2f - %.2f = R$ %.2f\n",
          NUM_ACCOUNTS * INITIAL_BALANCE, totalDep, totalWit, expected);
-  printf("Conferencia: %s\n\n", diff < 0.005 ? "OK - nenhum valor foi perdido"
+  printf("Conferencia: %s\n\n", diff < 0.00005 ? "OK - nenhum valor foi perdido"
                                              : "FALHOU - houve condicao de corrida");
   
   free(children);                         // deallocate array
